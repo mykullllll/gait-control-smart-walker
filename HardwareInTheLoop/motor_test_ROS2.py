@@ -12,7 +12,7 @@ class Motor_test(Node):
         self.pub_shutdown = self.create_publisher(Bool, '/shutdown', 1)
         self.create_subscription(JointState, '/encoder_data', self.encoder_callback, 1)
 
-        self.wheel_velocity = 2.0
+        self.wheel_velocity = -2.0
         self.shutdown_requested = False
 
         # ONE-SHOT TIMER: This calls arm_hardware_callback after 0.5 seconds without freezing the node

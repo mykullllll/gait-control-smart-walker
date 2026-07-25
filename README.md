@@ -4,7 +4,6 @@ The Smart Walker is an autonomous rehabilitation device used to help patients wi
 The current control system uses force torque sensors to measure conscious intent of the user during walking in order to walk with the patient without exerting much energy to move the walker. While this is useful, having a control system that only looks at the force being applied to the handles isn’t an accurate depiction of the user's actual intent since it’s not taking into account the users legs. In order to fix this problem with relatively cheap components, I've added a feed forward + feedback control system using a 2D RPLidar A1M8-R6 to perceive the users legs and an AK-10-9 V2.0 motor with magnetic encoders to control the wheels. 
 
 # Objectives
-The objectives of this project: 
 
 1. Design a control system that can measure the users intent through a 2D LiDAR scan of the patients legs in order to "walk" in rhythm with the user.
 2. Extract gait metrics from sessions i.e (Velocity, Stride Length and Time Variability, Gait Symmetry, Lateral Step Length)

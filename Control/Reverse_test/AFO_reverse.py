@@ -421,14 +421,9 @@ class main_loop:
                         self.walker.stride_history.clear()
                         self.freeze_window.clear()
                 return None,None
-            
-
-
 
             # before AFO update
             cadence_update_zone = -0.4556 < pelvis < -0.3556
-
-            
 
             if (
                 not self.assist_ramping
@@ -567,8 +562,6 @@ class main_loop:
                 )
             else:
                 self.stationary_history.clear()
-
-
 
             linear_velocity = 0.0
 
