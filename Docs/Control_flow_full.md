@@ -58,7 +58,8 @@ flowchart TD
         oneWidth{"Single-cluster width<br/>greater than 0.30 m?"}
         split["Yes: split point array in half<br/>calculate two centroids"]
         reconstruct["No: mark occluded<br/>match visible centroid to prior legs<br/>reuse hidden leg position"]
-        noisy[">2 clusters<br/>reuse previous two legs"]
+        noisyHistory{"Previous two leg<br/>positions available?"}
+        noisy[">2 clusters<br/>reuse previous two legs<br/>without marking occlusion"]
         zeroLabels["No DBSCAN clusters<br/>mark occluded and reuse prior legs"]
         history{"Required previous<br/>leg positions exist?"}
         occlusionCount["Increment consecutive<br/>occlusion counter"]
@@ -75,7 +76,9 @@ flowchart TD
         oneWidth -- No --> history
         history -- Yes --> reconstruct --> occlusionCount
         history -- No --> skipTick
-        clusterCount -- ">2" --> noisy --> history
+        clusterCount -- ">2" --> noisyHistory
+        noisyHistory -- Yes --> noisy --> legsReady
+        noisyHistory -- No --> skipTick
         clusterCount -- "0" --> zeroLabels --> occlusionCount
         occlusionCount --> shutdownOcclusion
         shutdownOcclusion -- No --> legsReady
@@ -221,6 +224,7 @@ flowchart TD
     %% ---------- Command shaping ----------
     subgraph COMMAND["10. Command shaping"]
         convert["Convert linear target to wheel rad/s<br/>wheel radius = 0.1143 m"]
+        direction{"Reverse mode<br/>active?"}
         forwardClip["Forward target clip<br/>0–0.684 m/s"]
         reverseClip["Reverse target clip<br/>−0.05–0 m/s"]
         slew["State-dependent slew limiting<br/>accel 0.4, decel 0.8,<br/>stop 1.2, attenuation 1.0,<br/>reverse 0.10 m/s²"]
@@ -233,8 +237,9 @@ flowchart TD
         boost --> convert
         stop --> convert
         reverseDrive --> convert
-        convert --> forwardClip
-        convert --> reverseClip
+        convert --> direction
+        direction -- No --> forwardClip
+        direction -- Yes --> reverseClip
         forwardClip --> slew
         reverseClip --> slew
         slew --> rampDone
