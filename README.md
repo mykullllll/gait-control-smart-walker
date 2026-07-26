@@ -115,20 +115,22 @@ For further details look into: [Adapative Frequency Oscillator Gain Validation D
 
 
 # Example Output
-Calibration time: 14.833203554153442 s
-Mean Command: 2.453 rad/s
-Mean Encoder:      2.826 rad/s
-RMSE Predicted to True Velocity:       0.902 rad/s
-Mean error: -0.01763556725637624 --- Negative : missing low --- Positive : missing high ---
-Mean error absolute (MAE): 0.4707271453445335
-Standard Deviation of commanded velocity 1.0432527452144844
-Time in Active Assist: 70.43010752688173 % 
-Time in Active Attenuation: 15.591397849462366 %
-Time in Boost: 0.0 %
-Time in 0 Velocity: 13.978494623655912 %
-Time detected Frozen Gait [35.55018329620361, 47.55037522315979]
+Calibration time: 14.833203554153442 s  
+Mean Command: 2.453 rad/s  
+Mean Encoder:      2.826 rad/s  
+RMSE Predicted to True Velocity:       0.902 rad/s  
+Mean error: -0.01763556725637624 --- Negative : missing low --- Positive : missing high ---  
+Mean error absolute (MAE): 0.4707271453445335  
+Standard Deviation of commanded velocity 1.0432527452144844  
+Time in Active Assist: 70.43010752688173 %   
+Time in Active Attenuation: 15.591397849462366 %  
+Time in Boost: 0.0 %  
+Time in 0 Velocity: 13.978494623655912 %  
+Time detected Frozen Gait [35.55018329620361, 47.55037522315979]  
 
 <img src="Docs/Trial_data.png" alt="" width="800">
+
+
 <img src="Docs/Trial_vid.mov" alt="" width="800">
 
 
