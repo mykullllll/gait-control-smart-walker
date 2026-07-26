@@ -131,7 +131,7 @@ Time detected Frozen Gait [35.55018329620361, 47.55037522315979]
 <img src="Docs/Trial_data.png" alt="" width="800">
 
 
-<img src="Docs/Trial_vid.mov" alt="" width="800">
+<img src="Docs/Trial_vid.mp4" alt="" width="800">
 
 
 
