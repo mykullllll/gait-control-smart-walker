@@ -45,7 +45,7 @@ There can be instances where DBSCAN can't identify 2 distinct clusters due to no
 
 ### Hopf Adaptive Frequency Oscillator (AFO) 
 
-The Hopf Adaptive Frequency Oscillator is a coupled set of differential equations shown below. As you run this equation over many time steps the input signal F(t) forces $\dot{\omega}$ to either speed up or slow down to match the frequency of the input signal. For a more detailed analysis of the AFO works and validation [Hopf Adaptive Frequency Oscillator](/docs/AFO_analysis.ipynb).
+The Hopf Adaptive Frequency Oscillator is a coupled set of differential equations shown below. As you run this equation over many time steps the input signal F(t) forces $\dot{\omega}$ to either speed up or slow down to match the frequency of the input signal. 
 
 $$
 \begin{aligned}
@@ -60,7 +60,7 @@ $$
 
 https://github.com/user-attachments/assets/7dd72901-bb62-4123-a32d-af2526f6bd0f
 
-AFO Convergence of a sinusoidal input signal. [Simulation Code](/HardwareInTheLoop/AFO_simulation.py)
+[Simulation Code](/HardwareInTheLoop/AFO_simulation.py)
 
 > [!NOTE]
 > * $\eta$ - Changes the rate of convergence of the AFO frequency to the input signal frequency
@@ -92,14 +92,14 @@ $$
 ### Velocity Command
 $$
 \begin{aligned}
-\ Velocity_{AFO} &= \omega * Sampling Frequency * Stride Length * Velocity Gain \\
+\ Velocity_{AFO} &= Frequency * Stride Length * Velocity Gain \\
 \end{aligned}
 $$
 
 ### Safety Features
 Rate limiter was added to limit the maximum acceleration of wheel to ensure smooth motion. 
 
-## 4 Zones:
+## Zone Calculation:
 * Normal (0.60 < pelvis < 0.28): - If the user is in the desired zone, velocity will be normally calculated 
 * Boost (0.28 < pelvis < 0):  - If the user is too close to the walker the velocity will increase
 * Attenuation (0.60 < pelvis < 0.50): - If the user is too far from the walker the velocity will decrease 
