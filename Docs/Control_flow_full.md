@@ -306,4 +306,3 @@ values fall through to the stop state unless another condition handles them.
   as soon as leg motion resumes.
 - Persistent occlusion invokes a full controller shutdown. A stale sensor stream
   independently forces zero velocity at the 30 Hz motor-output gate.
-
