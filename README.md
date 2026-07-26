@@ -3,7 +3,7 @@ The Smart Walker is an autonomous rehabilitation device used to help patients wi
 
 The current control system uses force torque sensors to measure conscious intent of the user during walking in order to walk with the patient without exerting much energy to move the walker. While this is useful, having a control system that only looks at the force being applied to the handles isn’t an accurate depiction of the user's actual intent since it’s not taking into account the users legs. In order to fix this problem with relatively cheap components, I've added a feed forward + feedback control system using a 2D RPLidar A1M8-R6 to perceive the users legs and an AK-10-9 V2.0 motor with magnetic encoders to control the wheels. 
 
-<img src="Docs/Smart_walker_diagram.png" alt="Control-system flowchart" width="800">
+<img src="Docs//Media/Smart_walker_diagram.png" alt="Control-system flowchart" width="800">
 
 
 # Objectives
@@ -16,7 +16,7 @@ The current control system uses force torque sensors to measure conscious intent
 It's difficult to create a real time control system that uses only 2D LiDAR scans due to the low 10 Hz sampling rate, occlusion, and noise from outside LiDAR scans. Because of this, traditional frequency calculation methods like a Fast Fourier Transforms (FFT) has built in latency proportional to it's window size, and resolution is also inversely proportional to the latency shown in the equations below. For a control system that needs to walk in rhythm with a patient that has irregular pacing i.e (changes in stride length and step timing) delay motor control which can cause discomfort and potential injuries when walking. 
 In order to solve this I implemented an Hopf Adaptive Frequency Oscillator (AFO) that uses a coupled set of differential equations that converges to the frequency of any input frequency over time. To make sure the input signal to the AFO doesn't have unpredictable noise and is filtered in real time I used a simple low pass filter. In order to make sure the patient is within a comfortable distance, I added an attenuation and freezing gait detection system in order to slow down, speed up, or stop, if the user is deviating from their normal gait. 
 
-<img src="Docs/Control_flow.png" alt="Control-system flowchart" width="800">
+<img src="Docs//Media/Control_flow.png" alt="Control-system flowchart" width="800">
 
 
 ## ROS2 Topics and sensor inputs
@@ -39,7 +39,7 @@ LiDAR scans are grouped using DBSCAN, a density based clustering algorithin that
 ### Occlusion Detection
 There can be instances where DBSCAN can't identify 2 distinct clusters due to noise or occlusion of one leg behind the other. Below is the decision tree based on different possible scenarios. 
 
-<img src="Docs/Occlusion_decision_tree.png" alt="Control-system flowchart" width="800">
+<img src="Docs/Media/Occlusion_decision_tree.png" alt="Control-system flowchart" width="800">
 
 
 
@@ -128,10 +128,10 @@ Time in Boost: 0.0 %
 Time in 0 Velocity: 13.978494623655912 %  
 Time detected Frozen Gait [35.55018329620361, 47.55037522315979]  
 
-<img src="Docs/Trial_data.png" alt="" width="800">
+<img src="Docs/Media/Trial_data.png" alt="" width="800">
 
 
-<img src="Docs/Trial_vid.mp4" alt="" width="800">
+<img src="Docs/Media/Trial_vid.mp4" alt="" width="800">
 
 
 
