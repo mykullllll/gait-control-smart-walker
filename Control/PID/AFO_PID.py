@@ -10,25 +10,12 @@ except ImportError:
 class SignalProcessor:
     "Handles Signal Processing of LiDAR and Leg detection"
 
-    def __init__(
-        self,
-        scissor_window=None,
-        right=None,
-        left=None,
-        true_timestamp=None,
-        cal_encoder_velocity=None,
-        prev_scissor=0,
-        prev_avg=0,
-        prev_left=0,
-        prev_right=0,
-    ):
+    def __init__(self, scissor_window=None, right=None, left=None, true_timestamp=None, cal_encoder_velocity=None, prev_scissor=0, prev_avg=0, prev_left=0, prev_right=0):
         self.scissor_window = scissor_window if scissor_window is not None else []
         self.right = right if right is not None else []
         self.left = left if left is not None else []
         self.true_timestamp = true_timestamp if true_timestamp is not None else []
-        self.cal_encoder_velocity = (
-            cal_encoder_velocity if cal_encoder_velocity is not None else []
-        )
+        self.cal_encoder_velocity = cal_encoder_velocity if cal_encoder_velocity is not None else []
 
         self.prev_scissor = prev_scissor
         self.prev_avg = prev_avg
@@ -41,15 +28,7 @@ class SignalProcessor:
             b, a = butter(order, normal_cutoff, btype='low')
             return filtfilt(b, a, data)"""
 
-    def offline_data(
-        self,
-        left_current,
-        right_current,
-        time,
-        encoder,
-        alpha_scissor=0.35,
-        alpha_pelvis=0.6,
-    ):
+    def offline_data(self, left_current, right_current, time, encoder, alpha_scissor=0.35, alpha_pelvis=0.6):
         max_leg_jump = 0.20
 
         if left_current is None or right_current is None:
@@ -60,15 +39,9 @@ class SignalProcessor:
         else:
             if len(self.left) > 0:
                 if abs(left_current - self.prev_left) > max_leg_jump:
-                    left_current = (
-                        self.prev_left
-                        + np.sign(left_current - self.prev_left) * max_leg_jump
-                    )
+                    left_current = self.prev_left + np.sign(left_current - self.prev_left) * max_leg_jump
                 if abs(right_current - self.prev_right) > max_leg_jump:
-                    right_current = (
-                        self.prev_right
-                        + np.sign(right_current - self.prev_right) * max_leg_jump
-                    )
+                    right_current = self.prev_right + np.sign(right_current - self.prev_right) * max_leg_jump
 
             left_raw = left_current
             right_raw = right_current
@@ -80,9 +53,7 @@ class SignalProcessor:
                 scissor_signal = raw_scissor
                 avg_position = raw_avg
             else:
-                scissor_signal = self.prev_scissor + alpha_scissor * (
-                    raw_scissor - self.prev_scissor
-                )
+                scissor_signal = self.prev_scissor + alpha_scissor * (raw_scissor - self.prev_scissor)
                 avg_position = self.prev_avg + alpha_pelvis * (raw_avg - self.prev_avg)
 
         self.left.append(left_raw)
@@ -106,7 +77,6 @@ class SignalProcessor:
 
         return left_raw, right_raw, scissor_signal, avg_position
 
-
 class AdaptiveFrequencyOscillator:
     # Calculate Frequency of signal
 
@@ -122,9 +92,7 @@ class AdaptiveFrequencyOscillator:
     def step_afo(self, signal):
 
         r = np.sqrt(self.x ** 2 + self.y ** 2) + 1e-6
-        xdot = (
-            (self.mu - np.square(r)) * self.x - self.omega * self.y + self.eps * signal
-        )
+        xdot = (self.mu - np.square(r)) * self.x - self.omega * self.y + self.eps * signal
         ydot = (self.mu - np.square(r)) * self.y + self.omega * self.x
         omegadot = (-self.eta * signal * self.y) / r
 
@@ -137,18 +105,10 @@ class AdaptiveFrequencyOscillator:
 
         return cadence
 
-
 class WalkerController:
     "Velocity commands"
 
-    def __init__(
-        self,
-        window_size=50,
-        stride_window=None,
-        k_p=1.0,
-        position_deadband=0.05,
-        max_linear_velocity=0.684,
-    ):
+    def __init__(self, window_size=50, stride_window=None, k_p=1.0, position_deadband=0.05, max_linear_velocity=0.684):
         self.window_size = window_size
         self.stride_window = stride_window if stride_window is not None else []
         self.k_p = k_p
@@ -161,30 +121,23 @@ class WalkerController:
         if len(stride_window) > self.window_size:
             stride_window.pop(0)
         if len(stride_window) == self.window_size:
-            last_stride = np.ptp(
-                stride_window
-            )  # Need to change this sometime (PTP finds maxiself.mum and miniself.mum of window, but is there a better way to scale the stride length? Kalman maybe)
+            last_stride = np.ptp(stride_window)  # Need to change this sometime (PTP finds maxiself.mum and miniself.mum of window, but is there a better way to scale the stride length? Kalman maybe)
             # print(last_stride)
             # last_stride = np.clip(last_stride,0.3,1.5)
             return last_stride
 
         return None
 
-    def velocity_command(
-        self, cadence, last_stride, velocity_gain, pelvis, desired_pelvis
-    ):
+    def velocity_command(self, cadence, last_stride, velocity_gain, pelvis, desired_pelvis):
         feedforward_velocity_command = cadence * last_stride * velocity_gain
         error = pelvis - desired_pelvis
         if abs(error) < self.position_deadband:
             error = 0.0
 
         feedback = self.k_p * (error)
-        velocity_command = np.clip(
-            feedback + feedforward_velocity_command, 0.0, self.max_linear_velocity
-        )
+        velocity_command = np.clip(feedback + feedforward_velocity_command, 0.0, self.max_linear_velocity)
 
         return velocity_command
-
 
 class Cluster:
     def __init__(self, min_dist=0.25, max_dist=2, prev_leg_r=None, prev_leg_l=None):
@@ -305,12 +258,7 @@ class Cluster:
 
         # 3. Create a strict boolean mask to isolate valid leg points
         # Strips out NaNs, Infs, and enforces your distance boundaries
-        valid_mask = (
-            np.isfinite(ranges)
-            & (~np.isnan(ranges))
-            & (ranges > self.min_dist)
-            & (ranges < self.max_dist)
-        )
+        valid_mask = np.isfinite(ranges) & (~np.isnan(ranges)) & (ranges > self.min_dist) & (ranges < self.max_dist)
 
         # 4. Extract only the valid data payloads
         valid_ranges = ranges[valid_mask]
@@ -333,7 +281,6 @@ class Cluster:
 class main_loop:
     def __init__(self, fs=10, wheel_radius=0.1143):
 
-        # Motion limits and current command state
         self.fs = fs
         self.wheel_radius = wheel_radius
         self.max_accel = 0.4  # m/s^2
@@ -343,7 +290,6 @@ class main_loop:
         self.current_velocity = 0
         self.cadence = None
 
-        # Walking-inactivity detection
         self.freeze_window = []
         self.freeze_window_times = []
         self.freeze_event_history = []
@@ -355,7 +301,6 @@ class main_loop:
         self.ramp_complete_time = None
         self.prev_freeze_detected = False
 
-        # Calibration and assist state
         self.calibrated = False
         self.velocity_gain = 1.0
         self.cal_stride = None
@@ -363,12 +308,10 @@ class main_loop:
         self.afo_enabled = False
         self.assist_ramping = False
 
-        # Processing components
         self.signal = SignalProcessor()
         self.oscillator = AdaptiveFrequencyOscillator(fs, eta=5.5, eps=8.5)
         self.walker = WalkerController()
 
-        # Telemetry
         self.commanded_timestamps = []
         self.commanded_velocity_history = []
         self.encoder_data = []
@@ -379,42 +322,17 @@ class main_loop:
         self.stride_used_history = []
         self.target_wheel_history = []
 
-    def step_from_legs(
-        self, current_time, encoder_velocity, left_x, right_x, isoccluded
-    ):
-        # Stage 1: process the latest observation and record raw telemetry.
+    def step_from_legs(self, current_time, encoder_velocity, left_x, right_x, isoccluded):
         if left_x is not None and right_x is not None and encoder_velocity is not None:
-            _, _, scissor_signal, pelvis = self.signal.offline_data(
-                left_x, right_x, current_time, encoder_velocity
-            )
+            _, _, scissor_signal, pelvis = self.signal.offline_data(left_x, right_x, current_time, encoder_velocity)
             self.pelvis_history.append(pelvis)
             self.encoder_data.append(encoder_velocity)
             self.encoder_time.append(current_time)
 
-            # Stage 2: collect or retry the initial calibration.
             if not self.calibrated:
                 calibration_samples = int(self.fs * 15)
-                if (
-                    len(self.signal.scissor_window) >= calibration_samples
-                    and not self.calibrated
-                ):
-                    (
-                        calibration_success,
-                        self.x_d,
-                        self.velocity_gain,
-                        self.cal_stride,
-                        self.raw_frequency,
-                        self.time_to_cal,
-                    ) = calibration.calibration(
-                        self.signal.right,
-                        self.signal.left,
-                        self.signal.scissor_window,
-                        self.fs,
-                        self.signal.cal_encoder_velocity,
-                        current_omega=self.oscillator.omega,
-                        wheel_radius=self.wheel_radius,
-                        timestamps=self.signal.true_timestamp,
-                    )
+                if len(self.signal.scissor_window) >= calibration_samples and not self.calibrated:
+                    (calibration_success, self.x_d, self.velocity_gain, self.cal_stride, self.raw_frequency, self.time_to_cal) = calibration.calibration(self.signal.right, self.signal.left, self.signal.scissor_window, self.fs, self.signal.cal_encoder_velocity, current_omega=self.oscillator.omega, wheel_radius=self.wheel_radius, timestamps=self.signal.true_timestamp)
 
                     if calibration_success:
                         self.calibrated = True
@@ -438,8 +356,6 @@ class main_loop:
                         self.freeze_window.clear()
                 return None, None
 
-            # Stage 3: select the high-level command state.
-            # 0 = ramping, 1 = tracking, 2 = stopped/frozen.
             if isoccluded:
                 state = 2
             elif self.assist_ramping:
@@ -447,14 +363,9 @@ class main_loop:
             else:
                 state = 1
 
-            if (
-                not self.assist_ramping
-                and self.ramp_complete_time is not None
-                and current_time - self.ramp_complete_time >= self.freeze_arm_delay
-            ):
+            if not self.assist_ramping and self.ramp_complete_time is not None and current_time - self.ramp_complete_time >= self.freeze_arm_delay:
                 self.freeze_detection_armed = True
 
-            # Stage 4: update walking-inactivity detection.
             freeze_detected = False
             if self.freeze_detection_armed and not isoccluded:
                 self.freeze_window.append(scissor_signal)
@@ -462,10 +373,7 @@ class main_loop:
                 motion_range = np.ptp(self.freeze_window)
                 time_range = self.freeze_window_times[-1] - self.freeze_window_times[0]
 
-                freeze_detected = (
-                    motion_range < self.freeze_motion_threshold
-                    and time_range > self.freeze_detection_time
-                )
+                freeze_detected = motion_range < self.freeze_motion_threshold and time_range > self.freeze_detection_time
                 if freeze_detected:
                     state = 2
 
@@ -473,9 +381,7 @@ class main_loop:
                         self.freeze_event_history.append(current_time)
                         # Freeze Detection
                         print("-------- Freeze Detected -------")
-                        print(
-                            f"Start of Freeze Detection: {self.freeze_window_times[0]} s"
-                        )
+                        print(f"Start of Freeze Detection: {self.freeze_window_times[0]} s")
                         print(f"Time of Detection: {current_time} s")
                         print(f"Range of Motion Detected: {motion_range} m")
 
@@ -490,7 +396,6 @@ class main_loop:
 
             self.control_state.append(state)
 
-            # Stage 5: update the stride estimate.
             stride_used = self.previous_stride
             if not isoccluded:
                 self.walker.stride_window.append(scissor_signal)
@@ -499,28 +404,16 @@ class main_loop:
                 lower_bound = 0.80 * self.cal_stride
                 upper_bound = 1.20 * self.cal_stride
 
-                if (
-                    candidate_stride is not None
-                    and lower_bound <= candidate_stride <= upper_bound
-                ):
+                if candidate_stride is not None and lower_bound <= candidate_stride <= upper_bound:
                     alpha = 0.10
 
-                    self.previous_stride = (
-                        1 - alpha
-                    ) * self.previous_stride + alpha * candidate_stride
+                    self.previous_stride = (1 - alpha) * self.previous_stride + alpha * candidate_stride
                     stride_used = self.previous_stride
 
-            # Stage 6: update cadence and calculate the target linear velocity.
             if state == 0:
                 self.assist_ramping = True
                 command_cadence = self.raw_frequency
-                target_linear_velocity = self.walker.velocity_command(
-                    cadence=command_cadence,
-                    last_stride=self.cal_stride,
-                    velocity_gain=self.velocity_gain,
-                    pelvis=pelvis,
-                    desired_pelvis=self.x_d,
-                )
+                target_linear_velocity = self.walker.velocity_command(cadence=command_cadence, last_stride=self.cal_stride, velocity_gain=self.velocity_gain, pelvis=pelvis, desired_pelvis=self.x_d)
 
             elif state == 1:
 
@@ -530,9 +423,7 @@ class main_loop:
                     else:
                         measured_cadence = self.oscillator.step_afo(scissor_signal)
 
-                        cadence_floor = (
-                            self.raw_frequency
-                        )  # or 0.95 * self.raw_frequency
+                        cadence_floor = self.raw_frequency  # or 0.95 * self.raw_frequency
                         measured_cadence = max(measured_cadence, cadence_floor)
 
                         if measured_cadence > self.prev_cadence:
@@ -540,34 +431,20 @@ class main_loop:
                         else:
                             alpha = 0.30
 
-                        self.cadence = (
-                            1 - alpha
-                        ) * self.prev_cadence + alpha * measured_cadence
+                        self.cadence = (1 - alpha) * self.prev_cadence + alpha * measured_cadence
                         self.prev_cadence = self.cadence
                 else:
                     self.cadence = self.raw_frequency
 
-                target_linear_velocity = self.walker.velocity_command(
-                    self.cadence,
-                    stride_used,
-                    self.velocity_gain,
-                    pelvis=pelvis,
-                    desired_pelvis=self.x_d,
-                )
+                target_linear_velocity = self.walker.velocity_command(self.cadence, stride_used, self.velocity_gain, pelvis=pelvis, desired_pelvis=self.x_d)
 
             elif state == 2:
                 target_linear_velocity = 0.0
 
-            # Stage 7: convert the linear target to wheel angular velocity.
             target_wheel_velocity = target_linear_velocity / self.wheel_radius
 
-            # Stage 8: finish the initial ramp once the target is reached.
             if target_wheel_velocity > 0.1:
-                if (
-                    state == 0
-                    and self.assist_ramping
-                    and abs(target_wheel_velocity - self.current_velocity) < 0.1
-                ):
+                if state == 0 and self.assist_ramping and abs(target_wheel_velocity - self.current_velocity) < 0.1:
                     self.assist_ramping = False
                     self.afo_enabled = True
                     self.oscillator.omega = 2 * np.pi * self.cadence
@@ -580,7 +457,6 @@ class main_loop:
 
             self.cadence_history.append(self.cadence)
 
-            # Stage 9: apply the acceleration/deceleration limiter.
             if (target_wheel_velocity - self.current_velocity) > self.pos_delta_v:
                 delta_limit = self.pos_delta_v
             else:
@@ -595,7 +471,6 @@ class main_loop:
 
             self.current_velocity = commanded_velocity
 
-            # Stage 10: record output telemetry and return the command.
             self.commanded_velocity_history.append(commanded_velocity)
             self.commanded_timestamps.append(current_time)
 
