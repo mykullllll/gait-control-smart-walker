@@ -55,6 +55,9 @@ class walker_control_node(Node):
         self.cluster = Cluster()
         self.main = main_loop(fs=6)
 
+        self.latest_isoccluded = False
+        self.gait_metrics_timer = self.create_timer(1.0/6.0,self.publish_gait_metrics)
+
         self.timer = self.create_timer(1.0 / self.main.fs, self.control_loop_callback)
         self.motor_timer = self.create_timer(1.0 / 30.0, self.motor_publish_callback)
 
@@ -119,54 +122,53 @@ class walker_control_node(Node):
 
 
     def publish_gait_metrics(self):
-        """Publish gait metrics to the /gait_metrics topic."""
+        """Publish the latest gait metrics."""
+
         msg = GaitMetrics()
-        if self.main.cadence is not None:
-            msg.cadence_hz = float(self.main.cadence)
-            cadence_valid = True
-        else:
-            msg.cadence_hz = float('nan')
-            cadence_valid = False
 
-        if self.main.stride_length is not None:
-            msg.stride_length = float(self.main.stride_length)
-            stride_valid = True
-        else:
-            msg.stride_length = float('nan')
-            stride_valid = False    
+        msg.cadence_hz = (
+            float(self.main.cadence)
+            if self.main.cadence is not None
+            else float("nan")
+        )
 
-        if self.main.pelvis_position is not None:
-            msg.pelvis_position = float(self.main.pelvis_position)
-            pelvis_valid = True
-        else:
-            msg.pelvis_position = float('nan')
-            pelvis_valid = False
-        
-        if self.main.target_wheel_velocity is not None:
-            msg.target_wheel_velocity = float(self.main.target_wheel_velocity)
-            target_velocity_valid = True
-        else:
-            msg.target_wheel_velocity = float('nan')
-            target_velocity_valid = False   
-        if self.main.commanded_velocity is not None:
-            msg.commanded_velocity = float(self.main.commanded_velocity)
-            commanded_velocity_valid = True
-        else:
-            msg.commanded_velocity = float('nan')
-            commanded_velocity_valid = False    
+        msg.stride_length_m = (
+            float(self.main.stride_used_history[-1])
+            if self.main.stride_used_history
+            else float("nan")
+        )
 
-        msg.isoccluded = bool(getattr(self.main, 'isoccluded', False))
-        msg.freeze_detected = bool(self.main.prev_freeze_detected)
+        msg.pelvis_position_m = (
+            float(self.main.pelvis_history[-1])
+            if self.main.pelvis_history
+            else float("nan")
+        )
+
+        msg.target_wheel_velocity_rad_s = (
+            float(self.main.target_wheel_history[-1])
+            if self.main.target_wheel_history
+            else float("nan")
+        )
+
+        msg.commanded_velocity_m_s = (
+            float(self.main.commanded_velocity_history[-1])
+            if self.main.commanded_velocity_history
+            else 0.0
+        )
+
+        msg.isoccluded = bool(self.latest_isoccluded)
+        msg.freeze_detected = bool(
+            self.main.prev_freeze_detected
+        )
         msg.calibrated = bool(self.main.calibrated)
-        msg.control_state = (int(self.main.control_state) if self.main.control_state is not None else 0)
 
-        if self.main.control_state is not None:
-            msg.control_state = float(self.main.control_state)
+        msg.control_state = (
+            int(self.main.control_state[-1])
+            if self.main.control_state
+            else 0
+        )
 
         self.gait_metrics_pub.publish(msg)
-
-
-
 
     def control_loop_callback(self):
         if self.current_scan is None:
@@ -183,6 +185,7 @@ class walker_control_node(Node):
 
             collisions = self.cluster.process_scan(self.current_scan.angle_min, self.current_scan.angle_increment, self.current_scan.ranges, 0)
             raw_left, raw_right, isoccluded, shutdown = self.cluster.cluster_find(collisions)
+            self.latest_isoccluded = isoccluded
 
             if shutdown is True:
                 self.stop_motor()
@@ -218,8 +221,9 @@ class walker_control_node(Node):
 
         if step_result is None or step_result[0] is None:
             return
-
         wheel_velocity, _ = step_result
+        self.latest_wheel_velocity = wheel_velocity
+
 
         #arm_msg = Bool(data=False)
         #self.pub_shutdown.publish(arm_msg)
