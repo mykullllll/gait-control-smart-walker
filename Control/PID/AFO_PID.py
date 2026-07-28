@@ -112,12 +112,15 @@ class WalkerController:
         self.window_size = window_size
         self.stride_window = stride_window if stride_window is not None else []
         self.k_p = k_p
+        self.feedforward_velocity_history = []
+        self.feedback_velocity_history = []
+        self.error_history = []
+        self.unclipped_velocity_command = []
 
         self.position_deadband = position_deadband
         self.max_linear_velocity = max_linear_velocity
 
     def last_stride(self, stride_window):
-
         if len(stride_window) > self.window_size:
             stride_window.pop(0)
         if len(stride_window) == self.window_size:
@@ -128,15 +131,20 @@ class WalkerController:
 
         return None
 
-    def velocity_command(self, cadence, last_stride, velocity_gain, pelvis, desired_pelvis):
+    def velocity_command(self, cadence, last_stride, velocity_gain, pelvis, desired_pelvis,wheel_radius):
         feedforward_velocity_command = cadence * last_stride * velocity_gain
         error = pelvis - desired_pelvis
+        self.error_history.append(error)
         if abs(error) < self.position_deadband:
             error = 0.0
 
         feedback = self.k_p * (error)
-        velocity_command = np.clip(feedback + feedforward_velocity_command, 0.0, self.max_linear_velocity)
-
+        self.unclipped_velocity_command.append((feedback + feedforward_velocity_command)/wheel_radius)
+        velocity_command = np.clip(feedback + feedforward_velocity_command, -self.max_linear_velocity, self.max_linear_velocity)
+        feedforward_velocity_command = feedforward_velocity_command / wheel_radius
+        feedback = feedback / wheel_radius
+        self.feedforward_velocity_history.append(feedforward_velocity_command)
+        self.feedback_velocity_history.append(feedback)
         return velocity_command
 
 class Cluster:
@@ -321,6 +329,7 @@ class main_loop:
         self.pelvis_history = []
         self.stride_used_history = []
         self.target_wheel_history = []
+        self.controller_timestamps = []
 
     def step_from_legs(self, current_time, encoder_velocity, left_x, right_x, isoccluded):
         if left_x is not None and right_x is not None and encoder_velocity is not None:
@@ -357,7 +366,7 @@ class main_loop:
                 return None, None
 
             if isoccluded:
-                state = 2
+                state = 3
             elif self.assist_ramping:
                 state = 0
             else:
@@ -376,7 +385,6 @@ class main_loop:
                 freeze_detected = motion_range < self.freeze_motion_threshold and time_range > self.freeze_detection_time
                 if freeze_detected:
                     state = 2
-
                     if not self.prev_freeze_detected:
                         self.freeze_event_history.append(current_time)
                         # Freeze Detection
@@ -384,6 +392,7 @@ class main_loop:
                         print(f"Start of Freeze Detection: {self.freeze_window_times[0]} s")
                         print(f"Time of Detection: {current_time} s")
                         print(f"Range of Motion Detected: {motion_range} m")
+
 
                 if time_range > self.freeze_detection_time:
                     self.freeze_window_times.pop(0)
@@ -398,47 +407,48 @@ class main_loop:
 
             stride_used = self.previous_stride
             if not isoccluded:
-                self.walker.stride_window.append(scissor_signal)
-                candidate_stride = self.walker.last_stride(self.walker.stride_window)
+                stride_used = self.cal_stride
+                # self.walker.stride_window.append(scissor_signal)
+                # candidate_stride = self.walker.last_stride(self.walker.stride_window)
 
-                lower_bound = 0.80 * self.cal_stride
-                upper_bound = 1.20 * self.cal_stride
+                # lower_bound = 0.80 * self.cal_stride
+                # upper_bound = 1.20 * self.cal_stride
 
-                if candidate_stride is not None and lower_bound <= candidate_stride <= upper_bound:
-                    alpha = 0.10
+                # if candidate_stride is not None and lower_bound <= candidate_stride <= upper_bound:
+                #     alpha = 0.10
 
-                    self.previous_stride = (1 - alpha) * self.previous_stride + alpha * candidate_stride
-                    stride_used = self.previous_stride
+                #     self.previous_stride = (1 - alpha) * self.previous_stride + alpha * candidate_stride
+                #     stride_used = self.previous_stride
 
             if state == 0:
                 self.assist_ramping = True
                 command_cadence = self.raw_frequency
-                target_linear_velocity = self.walker.velocity_command(cadence=command_cadence, last_stride=self.cal_stride, velocity_gain=self.velocity_gain, pelvis=pelvis, desired_pelvis=self.x_d)
-
+                target_linear_velocity = self.walker.velocity_command(cadence=command_cadence, last_stride=self.cal_stride, velocity_gain=self.velocity_gain, pelvis=pelvis, desired_pelvis=self.x_d, wheel_radius=self.wheel_radius)
+                self.controller_timestamps.append(current_time)
             elif state == 1:
+                self.controller_timestamps.append(current_time)
+                # if self.afo_enabled:
+                #     if isoccluded:
+                #         self.cadence = self.prev_cadence
+                #     else:
+                #         measured_cadence = self.oscillator.step_afo(scissor_signal)
 
-                if self.afo_enabled:
-                    if isoccluded:
-                        self.cadence = self.prev_cadence
-                    else:
-                        measured_cadence = self.oscillator.step_afo(scissor_signal)
+                #         cadence_floor = self.raw_frequency  # or 0.95 * self.raw_frequency
+                #         measured_cadence = max(measured_cadence, cadence_floor)
 
-                        cadence_floor = self.raw_frequency  # or 0.95 * self.raw_frequency
-                        measured_cadence = max(measured_cadence, cadence_floor)
+                #         if measured_cadence > self.prev_cadence:
+                #             alpha = 0.35
+                #         else:
+                #             alpha = 0.30
 
-                        if measured_cadence > self.prev_cadence:
-                            alpha = 0.35
-                        else:
-                            alpha = 0.30
+                #         self.cadence = (1 - alpha) * self.prev_cadence + alpha * measured_cadence
+                #         self.prev_cadence = self.cadence
+                # else:
+                self.cadence = self.raw_frequency
+                
+                target_linear_velocity = self.walker.velocity_command(self.cadence, stride_used, self.velocity_gain, pelvis=pelvis, desired_pelvis=self.x_d,wheel_radius=self.wheel_radius)
 
-                        self.cadence = (1 - alpha) * self.prev_cadence + alpha * measured_cadence
-                        self.prev_cadence = self.cadence
-                else:
-                    self.cadence = self.raw_frequency
-
-                target_linear_velocity = self.walker.velocity_command(self.cadence, stride_used, self.velocity_gain, pelvis=pelvis, desired_pelvis=self.x_d)
-
-            elif state == 2:
+            elif state in (2,3):
                 target_linear_velocity = 0.0
 
             target_wheel_velocity = target_linear_velocity / self.wheel_radius

@@ -144,19 +144,19 @@ class walker_control_node(Node):
             else float("nan")
         )
 
-        msg.target_wheel_velocity_rad_s = (
+        msg.target_velocity_rad_s = (
             float(self.main.target_wheel_history[-1])
             if self.main.target_wheel_history
             else float("nan")
         )
 
-        msg.commanded_velocity_m_s = (
+        msg.commanded_velocity_rad_s = (
             float(self.main.commanded_velocity_history[-1])
             if self.main.commanded_velocity_history
             else 0.0
         )
 
-        msg.isoccluded = bool(self.latest_isoccluded)
+        msg.is_occluded = bool(self.latest_isoccluded)
         msg.freeze_detected = bool(
             self.main.prev_freeze_detected
         )
@@ -310,9 +310,19 @@ def main(args=None):
             print(f"Time in Ramping {100*(walker_node.main.control_state.count(0)/len(walker_node.main.control_state))} % ")
             print(f"Time in Tracking: {100*(walker_node.main.control_state.count(1)/len(walker_node.main.control_state))} %")
             print(f"Time in Frozen: {100*(walker_node.main.control_state.count(2)/len(walker_node.main.control_state))} %")
+            print(f"Time in Occlusion: {100*(walker_node.main.control_state.count(3)/len(walker_node.main.control_state))} %")
             print(f"Time detected Frozen Gait {walker_node.main.freeze_event_history}")
 
-            _, axs = plt.subplots(nrows=3, ncols=2, figsize=(10, 8))
+
+
+            print("\n Proportional Gain Test")
+            print(
+                f"Desired leg position: "
+                f"{walker_node.main.x_d:.3f} m"
+            )
+
+
+            _, axs = plt.subplots(nrows=4, ncols=2, figsize=(10, 8))
 
             axs[0, 0].plot(walker_node.main.commanded_timestamps, walker_node.main.commanded_velocity_history, color="red", linestyle="--", label="Velocity Command")
             axs[0, 0].plot(walker_node.main.encoder_time, walker_node.main.encoder_data, color="blue", label="Encoder Data Feedback")
@@ -340,8 +350,8 @@ def main(args=None):
             axs[1, 1].set_title("Control State")
             axs[1, 1].set_ylabel("Control State")
             axs[1, 1].set_xlabel("Time (s)")
-            axs[1, 1].set_yticks([0, 1, 2])
-            axs[1, 1].set_yticklabels(["Ramping", "Tracking", "Frozen"])
+            axs[1, 1].set_yticks([0, 1, 2, 3])
+            axs[1, 1].set_yticklabels(["Ramping", "Tracking", "Frozen","Occluded"])
             axs[1, 1].legend()
             axs[1, 1].grid(True)
 
@@ -349,14 +359,29 @@ def main(args=None):
             axs[2, 0].set_title("Stride Used")
             axs[2, 0].set_ylabel("m")
             axs[2, 0].grid(True)
-            axs[2, 0].legend()
+            axs[2, 0].legend() 
 
             axs[2, 1].plot(walker_node.main.commanded_timestamps, walker_node.main.target_wheel_history, label="Target Wheel Velocity")
             axs[2, 1].plot(walker_node.actual_publish_time, walker_node.actual_publish_history, label="Actually Published", alpha=0.8)
-            axs[2, 1].set_title("Target vs Published Command")
+            axs[2, 1].plot(walker_node.main.controller_timestamps, walker_node.main.walker.unclipped_velocity_command, label="Velocity Unclipped", alpha=0.8)
+            axs[2, 1].set_title("Target vs Published Command vs Unclipped")
             axs[2, 1].set_ylabel("rad/s")
             axs[2, 1].grid(True)
             axs[2, 1].legend()
+
+
+            axs[3, 1].plot(walker_node.main.controller_timestamps, walker_node.main.walker.feedback_velocity_history, label="Feedback Velocity")
+            axs[3, 1].plot(walker_node.main.controller_timestamps, walker_node.main.walker.feedforward_velocity_history, label="Feedforward Velocity", alpha=0.8)
+            axs[3, 1].set_title("Feedforward vs Feedback")
+            axs[3, 1].set_ylabel("rad/s")
+            axs[3, 1].grid(True)
+            axs[3, 1].legend()
+
+            axs[3, 0].plot(walker_node.main.controller_timestamps, walker_node.main.walker.error_history, label= "Error (m)")
+            axs[3, 0].set_title("Error")
+            axs[3, 0].set_ylabel("m")
+            axs[3, 0].grid(True)
+            axs[3, 0].legend()
 
             plt.tight_layout()
             plt.show()
