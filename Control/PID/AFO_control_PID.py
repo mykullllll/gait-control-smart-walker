@@ -10,6 +10,7 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import JointState, LaserScan
 from std_msgs.msg import Bool, Float64
+from gait_walker_interface.msg import GaitMetrics
 
 from AFO_PID import Cluster, main_loop
 
@@ -34,6 +35,9 @@ class walker_control_node(Node):
         self.pub_shutdown = self.create_publisher(Bool, "/shutdown", 1)
         self.pub_right_motor = self.create_publisher(Float64, "/right_wheel_velocity", 1)
         self.pub_left_motor = self.create_publisher(Float64, "/left_wheel_velocity", 1)
+        self.gait_metrics_pub = self.create_publisher(GaitMetrics, "/gait_metrics", 10)
+
+
 
         scan_sub = message_filters.Subscriber(self, LaserScan, "/scan_legs_filtered", qos_profile=qos_profile_sensor_data)
         encoder_sub = message_filters.Subscriber(self, JointState, "/encoder_data", qos_profile=1)
@@ -112,6 +116,57 @@ class walker_control_node(Node):
 
         self.pub_left_motor.publish(Float64(data=velocity))
         self.pub_right_motor.publish(Float64(data=velocity))
+
+
+    def publish_gait_metrics(self):
+        """Publish gait metrics to the /gait_metrics topic."""
+        msg = GaitMetrics()
+        if self.main.cadence is not None:
+            msg.cadence_hz = float(self.main.cadence)
+            cadence_valid = True
+        else:
+            msg.cadence_hz = float('nan')
+            cadence_valid = False
+
+        if self.main.stride_length is not None:
+            msg.stride_length = float(self.main.stride_length)
+            stride_valid = True
+        else:
+            msg.stride_length = float('nan')
+            stride_valid = False    
+
+        if self.main.pelvis_position is not None:
+            msg.pelvis_position = float(self.main.pelvis_position)
+            pelvis_valid = True
+        else:
+            msg.pelvis_position = float('nan')
+            pelvis_valid = False
+        
+        if self.main.target_wheel_velocity is not None:
+            msg.target_wheel_velocity = float(self.main.target_wheel_velocity)
+            target_velocity_valid = True
+        else:
+            msg.target_wheel_velocity = float('nan')
+            target_velocity_valid = False   
+        if self.main.commanded_velocity is not None:
+            msg.commanded_velocity = float(self.main.commanded_velocity)
+            commanded_velocity_valid = True
+        else:
+            msg.commanded_velocity = float('nan')
+            commanded_velocity_valid = False    
+
+        msg.isoccluded = bool(getattr(self.main, 'isoccluded', False))
+        msg.freeze_detected = bool(self.main.prev_freeze_detected)
+        msg.calibrated = bool(self.main.calibrated)
+        msg.control_state = (int(self.main.control_state) if self.main.control_state is not None else 0)
+
+        if self.main.control_state is not None:
+            msg.control_state = float(self.main.control_state)
+
+        self.gait_metrics_pub.publish(msg)
+
+
+
 
     def control_loop_callback(self):
         if self.current_scan is None:
