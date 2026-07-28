@@ -113,6 +113,15 @@ For further details look into: [Adapative Frequency Oscillator Gain Validation D
 
 [Adapative Frequency Oscillator Gain Validation Code](/HardwareInTheLoop/AFO_validation.py)
 
+# Commands
+`cd ~/ros2_ws`
+`ros2_load`
+`ros2 launch rplidar_ros gait_lidar_launch.py`
+`ros2_load`
+`docker run -it --rm -v /dev:/dev --privleged --net=host microros/micro-ros-agen-jazzy serial --dev /dev/ttyUSB1 =b 115200`
+`ros2_load`
+`python3 ~/ros2_ws/src/control_system/control_system/AFO_control.py`
+`
 
 # Example Output
 Calibration time: 14.833203554153442 s  
