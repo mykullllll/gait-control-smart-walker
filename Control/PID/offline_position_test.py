@@ -6,8 +6,6 @@ import csv
 from pathlib import Path
 
 
-
-
 pid_directory = Path(__file__).resolve().parent
 control_directory = pid_directory.parent
 
