@@ -28,7 +28,7 @@ class SignalProcessor:
             b, a = butter(order, normal_cutoff, btype='low')
             return filtfilt(b, a, data)"""
 
-    def offline_data(self, left_current, right_current, time, encoder, alpha_scissor=0.35, alpha_pelvis=0.6):
+    def offline_data(self, left_current, right_current, time, encoder, alpha_scissor=0.35, alpha_pelvis=1.0):
         max_leg_jump = 0.20
 
         if left_current is None or right_current is None:
@@ -108,7 +108,7 @@ class AdaptiveFrequencyOscillator:
 class WalkerController:
     "Velocity commands"
 
-    def __init__(self, window_size=50, stride_window=None, k_p=1.0, position_deadband=0.05, max_linear_velocity=0.684):
+    def __init__(self, window_size=50, stride_window=None, k_p=3.0, position_deadband=0.02, max_linear_velocity=0.684):
         self.window_size = window_size
         self.stride_window = stride_window if stride_window is not None else []
         self.k_p = k_p
