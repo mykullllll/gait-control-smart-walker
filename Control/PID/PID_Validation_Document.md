@@ -84,8 +84,10 @@ Corrective velocity:
 
 $$
 \begin{aligned}
-\Velocity = k_p * error + k_i * $$\iint_t error\, dt$$ + k_d * dot{e} \\
+\text{Velocity} = k_p \cdot e + k_i \int_0^t e \, dt + k_d \cdot \dot{e}
 \end{aligned}
+$$
+
 
 ## Gains tested
 
