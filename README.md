@@ -8,6 +8,12 @@ The current control system uses force torque sensors to measure conscious intent
 # Research Question
 Can a non-wearable 2D-LiDAR-sensed walker provide accurate, comfortable, gait-synchronized feedforward assistance despite the sensing constraints of a cheaper (6-10 Hz sampling rate, occlusion, noise)? 
 
+## Subclaims
+* The Hopf AFO tracks cadence with lower latency than windowed FFT/moving-average under this walker's actual noise and occlusion profile. (the estimator benchmark)
+* The occlusion-handling pipeline (DBSCAN + decision tree) preserves leg tracking through a stated fraction of synthetic occlusion events without losing calibration. (new result — doesn't exist yet)
+* The closed-loop controller tracks true user velocity within a stated error bound across trials/subjects.
+* Extracted gait metrics (stride length, symmetry, cadence variability) are usable outputs, ideally checked against a reference measurement. 
+
 # Objectives
 1. Design a control system that can measure the users intent through a 2D LiDAR scan of the patients legs in order to command motor speeds in rhythm with the user.
 2. Extract gait metrics from sessions i.e (Velocity, Stride Length and Time Variability, Gait Symmetry, Lateral Step Length)
