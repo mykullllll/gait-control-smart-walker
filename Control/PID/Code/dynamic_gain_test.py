@@ -25,6 +25,8 @@ k_i_values = [0.0, 0.05, 0.10, 0.20]
 k_d_values = [0.0, 0.02, 0.05, 0.10]
 gain_results=[]
 
+
+
 for k_p,k_i,k_d in product(k_p_values,k_i_values,k_d_values):
     controller = main_loop(
         fs=6,
@@ -189,6 +191,15 @@ for k_p,k_i,k_d in product(k_p_values,k_i_values,k_d_values):
         f"Overshoot={overshoot_status} "
         f"Number of deadband exits {oscillation}"
     )
+
+
+
+
+
+
+
+
+
 
 
 

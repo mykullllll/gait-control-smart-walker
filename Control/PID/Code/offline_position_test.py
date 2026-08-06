@@ -46,7 +46,7 @@ for gain in gain_values:
     controller.walker.k_p = gain
     controller.walker.k_i = 0
     controller.walker.k_d = 0
-
+    
 
     # Keep freeze detection out of the position-controller test.
     controller.ramp_complete_time = None
