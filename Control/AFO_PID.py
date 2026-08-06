@@ -108,17 +108,31 @@ class AdaptiveFrequencyOscillator:
 class WalkerController:
     "Velocity commands"
 
-    def __init__(self, window_size=50, stride_window=None, k_p=3.0, position_deadband=0.02, max_linear_velocity=0.684):
+    def __init__(self, window_size=50, stride_window=None, k_p=3.0,k_i =0.0,k_d=0.0, position_deadband=0.02 , max_linear_velocity=0.684,integral_limit = 0.25):
         self.window_size = window_size
         self.stride_window = stride_window if stride_window is not None else []
+
+        #Gains
         self.k_p = k_p
+        self.k_i = k_i
+        self.k_d = k_d
+
+        #History
         self.feedforward_velocity_history = []
         self.feedback_velocity_history = []
         self.error_history = []
         self.unclipped_velocity_command = []
 
+        #Limits
+        self.integral_limit = integral_limit
         self.position_deadband = position_deadband
         self.max_linear_velocity = max_linear_velocity
+
+        #Calculations
+        self.integral_error = 0.0
+        self.prev_error = None
+        self.filtered_derivative = 0.0
+        self.alpha = 0.2
 
     def last_stride(self, stride_window):
         if len(stride_window) > self.window_size:
@@ -131,20 +145,47 @@ class WalkerController:
 
         return None
 
-    def velocity_command(self, cadence, last_stride, velocity_gain, pelvis, desired_pelvis,wheel_radius):
-        feedforward_velocity_command = cadence * last_stride * velocity_gain
-        error = pelvis - desired_pelvis
-        self.error_history.append(error)
-        if abs(error) < self.position_deadband:
-            error = 0.0
+    def velocity_command(self, cadence, last_stride, velocity_gain, pelvis, desired_pelvis,wheel_radius,dt):
+        raw_error = pelvis - desired_pelvis
+        self.error_history.append(raw_error)
 
-        feedback = self.k_p * (error)
-        self.unclipped_velocity_command.append((feedback + feedforward_velocity_command)/wheel_radius)
-        velocity_command = np.clip(feedback + feedforward_velocity_command, -self.max_linear_velocity, self.max_linear_velocity)
-        feedforward_velocity_command = feedforward_velocity_command / wheel_radius
+        #Turn off PID if in deadband
+        if abs(raw_error) < self.position_deadband:
+            self.error = 0.0
+            self.integral_error=0
+            self.filtered_derivative = 0.0
+
+        else:
+            self.error = raw_error
+            if self.prev_error is not None:
+
+                #Integral Calculation
+                self.integral_error += self.error * dt
+
+                #Derivative Calculation
+                raw_derivative = (self.error - self.prev_error) / dt
+                self.filtered_derivative += self.alpha * (raw_derivative - self.filtered_derivative)
+            else:
+                self.filtered_derivative = 0
+                self.integral_error += self.error * dt
+        
+
+            
+        #PID Calculation 
+        feedback = self.k_p * (self.error) + self.k_i * self.integral_error + self.k_d * self.filtered_derivative
+        self.prev_error = self.error
+
+        #AFO/Feedforward Calculation
+        feedforward = cadence * last_stride * velocity_gain
+
+        #History
+        self.unclipped_velocity_command.append((feedback + feedforward)/wheel_radius)
+        velocity_command = np.clip(feedback + feedforward, -self.max_linear_velocity, self.max_linear_velocity)
+        feedforward = feedforward / wheel_radius
         feedback = feedback / wheel_radius
-        self.feedforward_velocity_history.append(feedforward_velocity_command)
+        self.feedforward_velocity_history.append(feedforward)
         self.feedback_velocity_history.append(feedback)
+
         return velocity_command
 
 class Cluster:
@@ -423,7 +464,7 @@ class main_loop:
             if state == 0:
                 self.assist_ramping = True
                 command_cadence = self.raw_frequency
-                target_linear_velocity = self.walker.velocity_command(cadence=command_cadence, last_stride=self.cal_stride, velocity_gain=self.velocity_gain, pelvis=pelvis, desired_pelvis=self.x_d, wheel_radius=self.wheel_radius)
+                target_linear_velocity = self.walker.velocity_command(cadence=command_cadence, last_stride=self.cal_stride, velocity_gain=self.velocity_gain, pelvis=pelvis, desired_pelvis=self.x_d, wheel_radius=self.wheel_radius,dt = 1/self.fs)
                 self.controller_timestamps.append(current_time)
             elif state == 1:
                 self.controller_timestamps.append(current_time)
@@ -446,7 +487,7 @@ class main_loop:
                 # else:
                 self.cadence = self.raw_frequency
                 
-                target_linear_velocity = self.walker.velocity_command(self.cadence, stride_used, self.velocity_gain, pelvis=pelvis, desired_pelvis=self.x_d,wheel_radius=self.wheel_radius)
+                target_linear_velocity = self.walker.velocity_command(self.cadence, stride_used, self.velocity_gain, pelvis=pelvis, desired_pelvis=self.x_d,wheel_radius=self.wheel_radius,dt=1/self.fs)
 
             elif state in (2,3):
                 target_linear_velocity = 0.0

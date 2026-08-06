@@ -43,6 +43,10 @@ for gain in gain_values:
         fs=6,
         wheel_radius=0.1143,
     )
+    controller.walker.k_p = gain
+    controller.walker.k_i = 0
+    controller.walker.k_d = 0
+
 
     # Keep freeze detection out of the position-controller test.
     controller.ramp_complete_time = None
@@ -92,7 +96,7 @@ for gain in gain_values:
             isoccluded=False,
         )
 
-        if result is None or result[0] is None:
+        if result is None:
             continue
         position_error = (controller.walker.error_history[-1])
         commanded_velocity_linear = result[0] * 0.1143
@@ -136,7 +140,7 @@ for gain in gain_values:
 )
 
 csv_path = Path(__file__).with_name(
-    "position_gain_baseline_results.csv"
+    "baseline_gain_data.csv"
 )
 fieldnames = [
     "gain",
@@ -158,8 +162,8 @@ print(f"Results saved to {csv_path}")
 
 
 
-#Saving to position_gain_baseline.md file
-markdown_path = Path(__file__).with_name("gait_baseline_data.md")
+#Saving to gait_baseline_data.md file
+markdown_path = Path(__file__).with_name("baseline_gain_data.md")
 
 with markdown_path.open("w") as md:
     print("# Gain Results\n", file=md)
