@@ -1,30 +1,17 @@
-# Idealized Position P-Controller Gain Baseline
+# Feedback Validation Documentation
 
-## Objective
-
-Determine how proportional gain will affect settling time, overshoot, and peak velocity before realistic dynamics. 
-This test is meant to establish a reference range of gains. It is not a final validation of the physical walker controller.
-
-## Controller Equation
+## Objective 
+The purpose of this validation is to find the optimal gains for a PID control system used as a corrective velocity if the user leaves the desired "zone/distance" to the walker. In order to easily debug and make sure all parts of the program are working correctly, I've added features incrementally as shown below. 
 
 Position error:
 
-    e = x_pelvis - x_desired
+    x_pelvis = (x_left + x_right)/2
+    e = x_pelvis - x_desire
 
-Corrective velocity:
+## Test Configuaration Parameters
 
-    v = Kp * e
-
-Stationary-user position update:
-
-    x_next = x_current - v * dt
-
-The proportional gain has units of 1/s.
-
-## Test Configuaration
-
-| Parameter | Value |
-|---|---:|
+| Parameters |
+|---|
 | Sampling frequency | 6 Hz |
 | Timestep | 0.16667 s |
 | Desired position | -0.40 m |
@@ -46,10 +33,11 @@ The proportional gain has units of 1/s.
 - Overshoot: Position crosses to the opposite side of the desired position
 - Number of Overshoots
 
-
-
-
 # Version 1 Ideal Proportional Controller
+
+## Objective
+Determine how proportional gain will affect settling time, overshoot, and peak velocity before realistic dynamics. 
+This test is meant to establish a reference range of gains. It is not a final validation of the physical walker controller.
 
 ## Gains tested
 
@@ -74,13 +62,7 @@ A set of simulated forward and backward velocities of a patient is shown below. 
 Patient Velocity(m/s)       0,-0.2, 0.2, -0.16, 0.12,-0.20 
 
 
-## Controller Equation
-
-Position error:
-
-    e = x_pelvis - x_desired
-
-Corrective velocity:
+## Controller Equation:
 
 $$
 \begin{aligned}
@@ -91,14 +73,16 @@ $$
 
 ## Gains tested
 
-k_p_values = [0,0.25,0.5,1.0,1.5,2.0,2.5,3.0,4.0,5.0,6.0]
-k_i_values = [0.0, 0.05, 0.10, 0.20]
-k_d_values = [0.0, 0.02, 0.05, 0.10]
+* k_p_values = [0,0.25,0.5,1.0,1.5,2.0,2.5,3.0,4.0,5.0,6.0]
+* k_i_values = [0.0, 0.05, 0.10, 0.20]
+* k_d_values = [0.0, 0.02, 0.05, 0.10]
 
 
 ## Results
 
 See the [Dynamic Gain Data Results](dynamic_gain_data.md).
+
+
 
 
 
