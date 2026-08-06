@@ -5,6 +5,8 @@ The current control system uses force torque sensors to measure conscious intent
 
 <img src="Docs//Media/Smart_walker_diagram.png" alt="Control-system flowchart" width="800">
 
+# Research Question
+Can a non-wearable 2D-LiDAR-sensed walker provide accurate, comfortable, gait-synchronized feedforward assistance despite the sensing constraints of a cheaper (6-10 Hz sampling rate, occlusion, noise)? 
 
 # Objectives
 1. Design a control system that can measure the users intent through a 2D LiDAR scan of the patients legs in order to command motor speeds in rhythm with the user.
