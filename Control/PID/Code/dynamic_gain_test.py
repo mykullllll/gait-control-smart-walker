@@ -7,6 +7,7 @@ from pathlib import Path
 from itertools import product
 import random
 import math
+from collections import deque
 
 
 control_directory = Path(__file__).resolve().parents[2]
@@ -53,7 +54,7 @@ def make_controller(k_p,k_i,k_d,fs=6,wheel_radius=0.1143):
     return controller
 
 
-def run_trial(controller,simulation_steps=100,latency_s= 0.3):
+def run_trial(controller,simulation_steps=100,latency_sensor_s= 0.3,latency_wheel_s=0.125):
 
 
     current_time_history=[]
@@ -65,6 +66,7 @@ def run_trial(controller,simulation_steps=100,latency_s= 0.3):
     jerk_window=[]
     wheel_command=[]
 
+
     #Metrics
     settle = False
     overshoot_status = False
@@ -75,8 +77,8 @@ def run_trial(controller,simulation_steps=100,latency_s= 0.3):
     integral_abs_error=0
     peak_error = 0.0
     patient_velocity=0.0
-    disturbance_index = 0
     acceleration=0.0
+
 
     #Simulated Velocity Changes Variables
     disturbance_velocities = [0,-0.2, 0.2, -0.16, 0.12, -0.20]
@@ -86,11 +88,23 @@ def run_trial(controller,simulation_steps=100,latency_s= 0.3):
     disturbance_interval_steps = round(disturbance_interval_s * controller.fs)
     initial_position = -0.50
     dt = 1.0 / controller.fs
+
+    #Latency 2 steps delayed
+    latency_sensor_steps = max(0,round(latency_sensor_s / dt),)
+    latency_velocity_command_steps = max(0,round(latency_wheel_s / dt),)
+    position_queue = deque([initial_position]*latency_sensor_steps)
+    velocity_queue = deque([0]*latency_velocity_command_steps)
     
     average_position = initial_position
 
 
     for index in range(simulation_steps):
+        if (index + 1) % disturbance_interval_steps == 0:
+            disturbance_index = (index // disturbance_interval_steps) % len(disturbance_velocities)
+
+        patient_velocity = disturbance_velocities[disturbance_index]
+
+
         current_time = index * dt
         step_in_interval = (index +1) % disturbance_interval_steps
         
@@ -98,9 +112,12 @@ def run_trial(controller,simulation_steps=100,latency_s= 0.3):
             patient_velocity = disturbance_velocities[disturbance_index]
 
         # Equal positions are sufficient for a position-only test.
-        left_x = average_position
-        right_x = average_position
+        position_queue.append(average_position)
+        measured_position = position_queue.popleft()
 
+        left_x=measured_position
+        right_x=measured_position
+            
         result = controller.step_from_legs(
             current_time=current_time,
             encoder_velocity=0.0,
@@ -113,11 +130,12 @@ def run_trial(controller,simulation_steps=100,latency_s= 0.3):
             continue
         position_error = (controller.walker.error_history[-1])
         commanded_velocity_linear = result[0] * controller.wheel_radius
+        velocity_queue.append(commanded_velocity_linear)
+        commanded_velocity_linear = velocity_queue.popleft()
 
         average_position+= (patient_velocity * dt) - (commanded_velocity_linear * dt)
-
         wheel_command.append(commanded_velocity_linear)
-
+       
         if len(wheel_command) > 1:
             previous_acceleration = acceleration
             acceleration = (wheel_command[-1] - wheel_command[-2]) / dt
@@ -140,10 +158,7 @@ def run_trial(controller,simulation_steps=100,latency_s= 0.3):
         # )
 
         # Change velocity after completing the 2-second interval.
-        if (index + 1) % disturbance_interval_steps == 0:
-            disturbance_index += 1
-            #Loops through disturbance index
-            disturbance_index %= len(disturbance_velocities)
+
 
 
 
@@ -186,6 +201,8 @@ def run_trial(controller,simulation_steps=100,latency_s= 0.3):
         "Root Mean Square Jerk (RMS)": rms_jerk,
         "Max error (m)": peak_error,
         "Overshoot": overshoot_status,
+        "Sensor Latency LiDAR (s)": latency_sensor_s,
+        "Motor Command Latency (s)": latency_wheel_s,
     }
 
     print(
@@ -197,7 +214,9 @@ def run_trial(controller,simulation_steps=100,latency_s= 0.3):
         f"Root Mean Square Acceleration (RMS)= {rms_acceleration},"
         f"Root Mean Square Jerk (RMS)= {rms_jerk} "
         f"Max error (m) = {peak_error} m "
-        f"Overshoot={overshoot_status} "
+        f"Overshoot = {overshoot_status}], "
+        f" ['Sensor Latency LiDAR (s)'] {latency_sensor_s}, "
+        f" Motor Command Latency (s) {latency_wheel_s}"
     )
 
     return metrics
@@ -225,6 +244,9 @@ def save_csv(gain_results,csv_path):
         "Root Mean Square Jerk (RMS)",
         "Max error (m)",
         "Overshoot",
+        "Sensor Latency LiDAR (s)",
+        "Motor Command Latency (s)",
+        
     ]
 
     with csv_path.open(
@@ -247,10 +269,10 @@ def save_markdown(gain_results,markdown_path):
     with markdown_path.open("w") as md:
         print("# Gain Results\n", file=md)
         print(
-            "| k_p| k_i | k_d | Integral Absolute Error | Root Mean Square Error (RMSE) | Root Mean Square Acceleration (RMS) | Root Mean Square Jerk (RMS) | Max error (m) | Overshoot |",
+            "| k_p| k_i | k_d | Integral Absolute Error | Root Mean Square Error (RMSE) | Root Mean Square Acceleration (RMS) | Root Mean Square Jerk (RMS) | Max error (m) | Overshoot | Sensor Latency LiDAR (s) | Motor Command Latency (s)| ",
             file=md,
         )
-        print("|---:|---:|---:|---:|:---:|:---:|:---:|:---:|:---:|", file=md)
+        print("|---:|---:|---:|---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|", file=md)
 
         for result in gain_results:
             print(
@@ -262,7 +284,10 @@ def save_markdown(gain_results,markdown_path):
                 f"| {result['Root Mean Square Acceleration (RMS)']}"
                 f"| {result['Root Mean Square Jerk (RMS)']}"
                 f"| {result['Max error (m)']} "
-                f"| {result['Overshoot']} |",
+                f"| {result['Overshoot']} "
+                f"| {result['Sensor Latency LiDAR (s)']} "
+                f"| {result['Motor Command Latency (s)']} |",
+
                 file=md,
             )
 
@@ -275,11 +300,11 @@ def main():
     csv_path = (
         Path(__file__).resolve().parents[1]
         / "Data"
-        / "dynamic_gain_data.csv"
+        / "latency_gain_data.csv"
     )
     save_csv(gain_results,csv_path)
 
-    markdown_path = Path(__file__).with_name("dynamic_gain_data.md")
+    markdown_path = Path(__file__).with_name("latency_gain_data.md")
     save_markdown(gain_results,markdown_path)
 
 
