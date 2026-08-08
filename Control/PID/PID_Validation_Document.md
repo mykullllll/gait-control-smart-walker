@@ -92,7 +92,7 @@ $$
 
 See the [Dynamic Gain Data Results](dynamic_gain_data.md).
 
-Gains around K_p = 2-3 with little to zero integral action form the most promising area. Derivative gains provides only small tracking benefit, and it's value cannot be decided until latency and sensor noise are included. There is no "optimal" gain since it depends on what you're optimizing for but we can narrow down our choices based off of our RMSE values. The minimum RMSE positional value is at k_p = 3, k_i = 0, k_d = 0.25 with RMSE (m) = 0.065315953 and RMS jerk: 1.165114 m/s³ . For a less aggressive candidate, k_p=2, k_i=0, k_d=0 with RMSE (m) = 0.065315953 \
+Gains around K_p = 2-3 with little to zero integral action form the most promising area. Derivative gains provides only small tracking benefit, and it's value cannot be decided until latency and sensor noise are included. There is no "optimal" gain since it depends on what you're optimizing for but we can narrow down our choices based off of our RMSE values. The minimum RMSE positional value is at k_p = 3, k_i = 0, k_d = 0.25 with RMSE (m) = 0.065315953 and RMS jerk: 1.165114 m/s³ . For a less aggressive candidate, k_p=2, k_i=0, k_d=0 with RMSE (m) = 0.065315953 
 
 This less aggressive candidate produces:
 
@@ -103,7 +103,7 @@ This less aggressive candidate produces:
 * About 20.75% higher IAE
 
 
-Therefore there is no single optimal gain, rather a tradeoff between smoothness vs tracking. In addition derivaitve gain barely produced any improvement while integral gains didn't actually help improve steady state error due due to the constant change in velocity. These values will be evaluated again under latency and noise shown below.\
+Therefore there is no single optimal gain, rather a tradeoff between smoothness vs tracking. In addition derivaitve gain barely produced any improvement while integral gains didn't actually help improve steady state error due due to the constant change in velocity. These values will be evaluated again under latency and noise shown below. 
 
 # Version 3 Real time Motor and Hardware Latency + Positional Noise
 
