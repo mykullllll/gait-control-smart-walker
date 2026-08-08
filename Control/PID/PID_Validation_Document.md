@@ -1,6 +1,6 @@
 # Feedback Validation Documentation
 
-## Objective 
+### Objective 
 The purpose of this validation is to find the optimal gains for a PID control system used as a corrective velocity if the user leaves the desired "zone/distance" to the walker. The metrics used to assess each gain combination is determined under the criteria of smoothness after unpredictable posotion disturbance, given sampling rate, latency, deadband, and motor limits. 
 
 The metrics used are shown below:
@@ -22,7 +22,7 @@ In order to easily debug and make sure all parts of the program are working corr
 Note:(All Versions have the previous implementations included)
 
 
-## Test Configuaration Parameters
+### Test Configuaration Parameters
 
 Position error:
 
@@ -47,32 +47,32 @@ Position error:
 
 # Version 1 Ideal Proportional Controller
 
-## Objective
+### Objective
 Determine how proportional gain will affect metrics specified above. 
 This test is meant to establish a reference range of gains. It is not a final validation of the physical walker controller.
 
-## Gains tested
+### Gains tested
 
     0.25, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0
 
-## Results
+### Results
 
 See the [position gain baseline results](gait_baseline_data.md).
 
 # Version 2 Patient Velocity + PID
 
-## Objective
+### Objective
 
 Determine how Proportional Integral and Derivative Gain will affect settling time, overshoot, and peak velocity with realistic change in positions. 
 This test is meant to establish a reference range of gains based off postitional change for PID. 
 
-## Procedure
+### Procedure
 A set of simulated forward and backward velocities of a patient is shown below. Every 2 seconds the next patient velocity is used changing the position of the user relative to the walker. 
 
 Patient Velocity(m/s)       0,-0.2, 0.2, -0.16, 0.12,-0.20 
 
 
-## Controller Equation:
+### Controller Equation:
 
 $$
 \begin{aligned}
@@ -81,14 +81,14 @@ $$
 $$
 
 
-## Gains tested
+### Gains tested
 
 * k_p_values = [0,0.25,0.5,1.0,1.5,2.0,2.5,3.0,4.0,5.0,6.0]
 * k_i_values = [0.0, 0.05, 0.10, 0.20,0.3,0.4,0.5]
 * k_d_values = [0.0, 0.02, 0.05, 0.10,0.15,0.20,0.25]
 
 
-## Results
+### Results
 
 See the [Dynamic Gain Data Results](dynamic_gain_data.md).
 
@@ -107,8 +107,22 @@ Therefore there is no single optimal gain, rather a tradeoff between smoothness 
 
 # Version 3 Real time Motor and Hardware Latency + Positional Noise
 
-## Objective
+### Objective
 Determine how motor and hardware latency will affect metrics above. The latency added will simulate motor response commands due to ramping as well as communication delay (dead time) between the flowchart shown below. Noise is also added representative of positional error from LiDAR scans. 
+
+### Procedure
+Added 0.167 s of sensor latency from LiDAR communication, and 0.333 s of motor and communication latency resulting in a predicted 0.5 s delay per velocity command. 
+
+* k_p_values = [0,0.25,0.5,1.0,1.5,2.0,2.5,3.0,4.0,5.0,6.0]
+* k_i_values = [0.0, 0.05, 0.10, 0.20,0.3,0.4,0.5]
+* k_d_values = [0.0, 0.02, 0.05, 0.10,0.15,0.20,0.25,0.4,0.5,0.6,0.7,0.8,2.0,3.0,4.0,5.0,9.0]
+* noise_seeds = list(range(1, 51))
+
+Noise seeds are random sets under a standard deviation of 0.1. Iteration through 65,450 different trials. 
+
+### Results
+
+See the [Latency Gain Data Results](latency_gain_data.md).
 
 
 # Version 4 Feedforward Velocity Correction
