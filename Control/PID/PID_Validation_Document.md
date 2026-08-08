@@ -3,15 +3,14 @@
 ## Objective 
 The purpose of this validation is to find the optimal gains for a PID control system used as a corrective velocity if the user leaves the desired "zone/distance" to the walker. The metrics used to assess each gain combination is determined under the criteria of smoothness after unpredictable posotion disturbance, given sampling rate, latency, deadband, and motor limits. 
 
-These metrics are shown below:
+The metrics used are shown below:
 
 - Integral Absolute Error (IAE): Cumulative error per gain combination over time $$IAE = \sum_k |e_k| \Delta t$$
 Where:
-* **$e_k$**: The error value at time step $k$.
+$e_k$: The error value at time step $k$.
 
 - Root Mean Square Error (RMSE): Penalizes occasional large position errors more strongly: $$RMSE = \sqrt{\frac{1}{N}\sum_k e_k^2}$$
-Where:
-* **$e_k$**: The error value at time step $k$.
+Where: $e_k$: The error value at time step $k$.
 
 - Maximum Error
 
@@ -22,12 +21,14 @@ Where:
 In order to easily debug and make sure all parts of the program are working correctly, I've added features incrementally shown as "Version 1,2,3 etc..."  
 Note:(All Versions have the previous implementations included)
 
+
+## Test Configuaration Parameters
+
 Position error:
 
     x_pelvis = (x_left + x_right)/2
     e = x_pelvis - x_desire
 
-## Test Configuaration Parameters
 
 | Parameters |
 |---|
@@ -116,8 +117,7 @@ Comparison:
 # Version 3 Real time Motor and Hardware Latency + Positional Noise
 
 ## Objective
-Determine how motor and hardware latency will affect settling time, overshoot, and peak velocity. The latency added will simulate motor response commands due to ramping as well as communication delay (dead time) between the flowchart shown below. Noise is also added representative of positional error from LiDAR scans. 
-
+Determine how motor and hardware latency will affect metrics above. The latency added will simulate motor response commands due to ramping as well as communication delay (dead time) between the flowchart shown below. Noise is also added representative of positional error from LiDAR scans. 
 
 
 # Version 4 Feedforward Velocity Correction
