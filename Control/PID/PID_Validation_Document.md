@@ -57,7 +57,7 @@ This test is meant to establish a reference range of gains. It is not a final va
 
 ### Results
 
-See the [position gain baseline results](gait_baseline_data.md).
+See the [position gain baseline results](Data/baseline_gain_data.md).
 
 # Version 2 Patient Velocity + PID
 
@@ -90,7 +90,7 @@ $$
 
 ### Results
 
-See the [Dynamic Gain Data Results](dynamic_gain_data.md).
+See the [Dynamic Gain Data Results](Data/dynamic_gain_data.md).
 
 Gains around K_p = 2-3 with little to zero integral action form the most promising area. Derivative gains provides only small tracking benefit, and it's value cannot be decided until latency and sensor noise are included. There is no "optimal" gain since it depends on what you're optimizing for but we can narrow down our choices based off of our RMSE values. The minimum RMSE positional value is at k_p = 3, k_i = 0, k_d = 0.25 with RMSE (m) = 0.065315953 and RMS jerk: 1.165114 m/s³ . For a less aggressive candidate, k_p=2, k_i=0, k_d=0 with RMSE (m) = 0.065315953 
 
@@ -122,7 +122,7 @@ Each noise seed generates a repeatable Gaussian position-noise sequence with a s
 
 ### Results
 
-See the [Latency Gain Data Results](Code/latency_gain_data.md).
+See the [Latency Gain Data Results](Data/latency_gain_data.md).
 
 Each gain combination was evaluated with 50 different noise sequences, and the metrics were aggregated across those trials. RMS acceleration and jerk quantify commanded motion intensity, but they do not by themselves establish human comfort; physical measurements and representative-user testing are still required. Candidate gains were retained when their mean RMSE was within 5% of the minimum mean RMSE. The resulting candidates are shown below.
 
