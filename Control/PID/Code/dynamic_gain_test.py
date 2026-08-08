@@ -17,7 +17,8 @@ from AFO_PID import main_loop
 
 k_p_values = [0,0.25,0.5,1.0,1.5,2.0,2.5,3.0,4.0,5.0,6.0]
 k_i_values = [0.0, 0.05, 0.10, 0.20,0.3,0.4,0.5]
-k_d_values = [0.0, 0.02, 0.05, 0.10,0.15,0.20,0.25]
+k_d_values = [0.0, 0.02, 0.05, 0.10,0.15,0.20,0.25,0.4,0.5,0.6,0.7,0.8,2.0,3.0,4.0,5.0,9.0]
+noise_seeds = list(range(1, 51))
 
 
 def make_controller(k_p,k_i,k_d,fs=6,wheel_radius=0.1143):
@@ -54,7 +55,7 @@ def make_controller(k_p,k_i,k_d,fs=6,wheel_radius=0.1143):
     return controller
 
 
-def run_trial(controller,simulation_steps=100,latency_sensor_s= 0.3,latency_wheel_s=0.125):
+def run_trial(controller,simulation_steps=100,latency_sensor_s= 0.3,latency_wheel_s=0.125,position_noise_std_m=0.0,noise_seed=1234):
 
 
     current_time_history=[]
@@ -78,6 +79,7 @@ def run_trial(controller,simulation_steps=100,latency_sensor_s= 0.3,latency_whee
     peak_error = 0.0
     patient_velocity=0.0
     acceleration=0.0
+    rng = random.Random(noise_seed) #Set Random sequence about gaussian distribution 
 
 
     #Simulated Velocity Changes Variables
@@ -99,20 +101,19 @@ def run_trial(controller,simulation_steps=100,latency_sensor_s= 0.3,latency_whee
 
 
     for index in range(simulation_steps):
-        if (index + 1) % disturbance_interval_steps == 0:
-            disturbance_index = (index // disturbance_interval_steps) % len(disturbance_velocities)
+        position_noise = rng.gauss(0.0,position_noise_std_m,)
+        noisy_position = average_position + position_noise
 
+
+        disturbance_index = (index // disturbance_interval_steps) % len(disturbance_velocities)
         patient_velocity = disturbance_velocities[disturbance_index]
 
 
         current_time = index * dt
-        step_in_interval = (index +1) % disturbance_interval_steps
-        
-        if step_in_interval < 1:
-            patient_velocity = disturbance_velocities[disturbance_index]
+
 
         # Equal positions are sufficient for a position-only test.
-        position_queue.append(average_position)
+        position_queue.append(noisy_position)
         measured_position = position_queue.popleft()
 
         left_x=measured_position
@@ -203,6 +204,8 @@ def run_trial(controller,simulation_steps=100,latency_sensor_s= 0.3,latency_whee
         "Overshoot": overshoot_status,
         "Sensor Latency LiDAR (s)": latency_sensor_s,
         "Motor Command Latency (s)": latency_wheel_s,
+        "Position Noise Standard Deviation": position_noise_std_m,
+        "Noise Seed": noise_seed,
     }
 
     print(
@@ -216,7 +219,9 @@ def run_trial(controller,simulation_steps=100,latency_sensor_s= 0.3,latency_whee
         f"Max error (m) = {peak_error} m "
         f"Overshoot = {overshoot_status}], "
         f" ['Sensor Latency LiDAR (s)'] {latency_sensor_s}, "
-        f" Motor Command Latency (s) {latency_wheel_s}"
+        f"| {result['Motor Command Latency (s)']} "
+        f"| {result['Position Noise Standard Deviation']} "
+        f"| {result['Noise Seed']} |",
     )
 
     return metrics
@@ -226,9 +231,10 @@ def sweep(k_p_values,k_i_values,k_d_values):
     gain_results=[]
 
     for k_p,k_i,k_d in product(k_p_values,k_i_values,k_d_values):
-        controller = make_controller(k_p,k_i,k_d)
-        metrics = run_trial(controller)
-        gain_results.append(metrics)
+        for noise_seed in noise_seeds:
+            controller = make_controller(k_p,k_i,k_d)
+            metrics = run_trial(controller,position_noise_std_m=0.01,noise_seed=noise_seed)
+            gain_results.append(metrics)
 
     return gain_results
 
@@ -246,6 +252,8 @@ def save_csv(gain_results,csv_path):
         "Overshoot",
         "Sensor Latency LiDAR (s)",
         "Motor Command Latency (s)",
+        "Position Noise Standard Deviation",
+        "Noise Seed",
         
     ]
 
@@ -269,10 +277,10 @@ def save_markdown(gain_results,markdown_path):
     with markdown_path.open("w") as md:
         print("# Gain Results\n", file=md)
         print(
-            "| k_p| k_i | k_d | Integral Absolute Error | Root Mean Square Error (RMSE) | Root Mean Square Acceleration (RMS) | Root Mean Square Jerk (RMS) | Max error (m) | Overshoot | Sensor Latency LiDAR (s) | Motor Command Latency (s)| ",
+            "| k_p| k_i | k_d | Integral Absolute Error | Root Mean Square Error (RMSE) | Root Mean Square Acceleration (RMS) | Root Mean Square Jerk (RMS) | Max error (m) | Overshoot | Sensor Latency LiDAR (s) | Motor Command Latency (s)| Position Noise Standard Deviation| Noise Seed |",
             file=md,
         )
-        print("|---:|---:|---:|---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|", file=md)
+        print("|---:|---:|---:|---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|", file=md)
 
         for result in gain_results:
             print(
@@ -287,6 +295,8 @@ def save_markdown(gain_results,markdown_path):
                 f"| {result['Overshoot']} "
                 f"| {result['Sensor Latency LiDAR (s)']} "
                 f"| {result['Motor Command Latency (s)']} |",
+                f"| {result['Position Noise Standard Deviation']} |",
+                f"| {result['Noise Seed']} |",
 
                 file=md,
             )
