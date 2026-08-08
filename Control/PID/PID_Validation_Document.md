@@ -111,18 +111,29 @@ Therefore there is no single optimal gain, rather a tradeoff between smoothness 
 Determine how motor and hardware latency will affect metrics above. The latency added will simulate motor response commands due to ramping as well as communication delay (dead time) between the flowchart shown below. Noise is also added representative of positional error from LiDAR scans. 
 
 ### Procedure
-Added 0.167 s of sensor latency from LiDAR communication, and 0.333 s of motor and communication latency resulting in a predicted 0.5 s delay per velocity command. 
+The requested LiDAR sensor latency was 0.300 s and the requested motor-command latency was 0.125 s. At the 6 Hz simulation rate, these were quantized to effective delays of 0.333 s (two samples) and 0.167 s (one sample), respectively, resulting in an effective total delay of 0.500 s.
 
 * k_p_values = [0,0.25,0.5,1.0,1.5,2.0,2.5,3.0,4.0,5.0,6.0]
 * k_i_values = [0.0, 0.05, 0.10, 0.20,0.3,0.4,0.5]
 * k_d_values = [0.0, 0.02, 0.05, 0.10,0.15,0.20,0.25,0.4,0.5,0.6,0.7,0.8,2.0,3.0,4.0,5.0,9.0]
 * noise_seeds = list(range(1, 51))
 
-Noise seeds are random sets under a standard deviation of 0.1. Iteration through 65,450 different trials. 
+Each noise seed generates a repeatable Gaussian position-noise sequence with a standard deviation of 0.01 m. Iterating through 50 seeds for every gain combination resulted in 65,450 trials.
 
 ### Results
 
-See the [Latency Gain Data Results](latency_gain_data.md).
+See the [Latency Gain Data Results](Code/latency_gain_data.md).
+
+Each gain combination was evaluated with 50 different noise sequences, and the metrics were aggregated across those trials. RMS acceleration and jerk quantify commanded motion intensity, but they do not by themselves establish human comfort; physical measurements and representative-user testing are still required. Candidate gains were retained when their mean RMSE was within 5% of the minimum mean RMSE. The resulting candidates are shown below.
+
+| $K_p$ | $K_i$ | $K_d$ | Mean IAE (m·s) | Mean RMS acceleration (m/s²) | Mean RMSE (m) | Mean RMS jerk (m/s³) | Max RMS acceleration (m/s²) | Max RMSE (m) | Max RMS jerk (m/s³) | Trials | RMSE above minimum (%) |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0.50 | 0.20 | 2.00 | 1.538932 | 0.387058 | 0.107293 | 2.433870 | 0.436732 | 0.158091 | 3.017144 | 50 | 0.000 |
+| 0.50 | 0.10 | 2.00 | 1.555671 | 0.379951 | 0.107797 | 2.396401 | 0.429178 | 0.141013 | 3.006802 | 50 | 0.470 |
+| 0.50 | 0.05 | 2.00 | 1.573997 | 0.382733 | 0.108564 | 2.463218 | 0.447695 | 0.133266 | 3.083318 | 50 | 1.185 |
+| 0.25 | 0.30 | 2.00 | 1.567307 | 0.358728 | 0.108715 | 2.362028 | 0.391045 | 0.131715 | 2.808567 | 50 | 1.326 |
+| 0.25 | 0.20 | 2.00 | 1.620475 | 0.354767 | 0.110393 | 2.396834 | 0.400202 | 0.124452 | 2.745763 | 50 | 2.890 |
+| 0.25 | 0.10 | 2.00 | 1.637100 | 0.356381 | 0.112299 | 2.417360 | 0.395747 | 0.128160 | 2.957781 | 50 | 4.666 |
 
 
 
@@ -130,7 +141,6 @@ See the [Latency Gain Data Results](latency_gain_data.md).
 
 ## Objective 
 Determine optimal gains from region given feedforward velocities from Adaptive Frequency Oscillators implemented during deadband zones. The PID should correct the positional errors when the user walks outside of the deadband zone. 
-
 
 
 
