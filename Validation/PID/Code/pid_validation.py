@@ -10,10 +10,17 @@ import math
 from collections import deque
 
 
-control_directory = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(control_directory))
+
+
+project_root = Path(__file__).resolve().parents[3]
+control_code_directory = project_root / "Control" / "Code"
+
+if str(control_code_directory) not in sys.path:
+    sys.path.insert(0, str(control_code_directory))
 
 from AFO_PID import main_loop
+
+
 
 k_p_values = [0,0.25,0.5,1.0,1.5,2.0,2.5,3.0,4.0,5.0,6.0]
 k_i_values = [0.0, 0.05, 0.10, 0.20,0.3,0.4,0.5]
@@ -318,4 +325,5 @@ def main():
     save_markdown(gain_results,markdown_path)
 
 
-main()
+if __name__ == "__main__":
+    main()
