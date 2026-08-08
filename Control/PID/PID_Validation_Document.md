@@ -92,20 +92,9 @@ $$
 
 See the [Dynamic Gain Data Results](dynamic_gain_data.md).
 
-Gains around K_p = 2-3 with little to zero integral action form the most promising area. Derivative gains provides only small tracking benefit, and it's value cannot be decided until latency and sensor noise are included. 
+Gains around K_p = 2-3 with little to zero integral action form the most promising area. Derivative gains provides only small tracking benefit, and it's value cannot be decided until latency and sensor noise are included. There is no "optimal" gain since it depends on what you're optimizing for but we can narrow down our choices based off of our RMSE values. The minimum RMSE positional value is at k_p = 3, k_i = 0, k_d = 0.25 with RMSE (m) = 0.065315953 and RMS jerk: 1.165114 m/s³ . For a less aggressive candidate, k_p=2, k_i=0, k_d=0 with RMSE (m) = 0.065315953 \
 
-There is no "optimal" gain since it depends on what you're optimizing for but we can narrow down our choices based off of our RMSE values. Since our RMSE had the lowest range hovering from 0.057 m to 0.068 m for a K_p = 2-3 I only considered this zone. 
-
-For the most comfortable but slow and higher error gain  
-
-k_p=2	k_i=0	k_d=0	IAE: 0.916267 m·s RMSE (m) = 0.065315953    RMSE Acceleration (m/s^2) = 0.223249023     RMS jerk: 1.165114 m/s³     Maximum error: 0.132740 m
-
-For the most responsive but higher acceleration gain
-
-k_p=3	k_i=0	k_d=0.25	IAE: 0.726111 m·s      RMSE(m)= 0.057931426	RMSE Acceleration(m/s^2) = 0.285558479      RMS jerk: 1.461037 m/s³     Maximum error: 0.166607 m
-
-
-Comparison:
+This less aggressive candidate produces:
 
 * 12.75% higher position RMSE
 * 21.82% lower RMS acceleration
@@ -113,6 +102,8 @@ Comparison:
 * 20.33% lower maximum error
 * About 20.75% higher IAE
 
+
+Therefore there is no single optimal gain, rather a tradeoff between smoothness vs tracking. In addition derivaitve gain barely produced any improvement while integral gains didn't actually help improve steady state error due due to the constant change in velocity. These values will be evaluated again under latency and noise shown below.\
 
 # Version 3 Real time Motor and Hardware Latency + Positional Noise
 
